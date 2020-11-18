@@ -9,7 +9,7 @@ class TestTechMethods(unittest.TestCase):
         self._loop = asyncio.get_event_loop()
         self._session = aiohttp.ClientSession(loop = self._loop)
         self._tech = tech.Tech(self._session)
-        self._loop.run_until_complete(self._tech.authenticate("gszumiec@gmail.com", "Asdfrtyu1"))
+        self._loop.run_until_complete(self._tech.authenticate("email", "email"))
     """
     def test_authenticate(self):
         result = self._loop.run_until_complete(self._tech.authenticate("email", "password"))
