@@ -9,7 +9,7 @@ class TestTechMethods(unittest.TestCase):
         self._loop = asyncio.get_event_loop()
         self._session = aiohttp.ClientSession(loop = self._loop)
         self._tech = tech.Tech(self._session)
-        self._loop.run_until_complete(self._tech.authenticate("email", "password"))
+        self._loop.run_until_complete(self._tech.authenticate("gszumiec@gmail.com", "Asdfrtyu1"))
     """
     def test_authenticate(self):
         result = self._loop.run_until_complete(self._tech.authenticate("email", "password"))
@@ -21,8 +21,9 @@ class TestTechMethods(unittest.TestCase):
         self.assertTrue(result[0])
 
     def test_module_data(self):
-        result = self._loop.run_until_complete(self._tech.module_data("module_id"))
+        result = self._loop.run_until_complete(self._tech.get_module_data("25672fada6092a5cce4204a6291174cb"))
         zones = json.loads(json.dumps(result))
+        print(len(zones))
         self.assertTrue("zones" in zones)
 
     def tearDown(self):

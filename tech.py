@@ -34,6 +34,7 @@ class Tech:
         self.last_update = None
         self.update_lock = asyncio.Lock()
         self.zones = {}
+        self.tiles = {}
 
     async def get(self, request_path):
         url = self.base_url + request_path
@@ -109,10 +110,40 @@ class Tech:
             if self.last_update is None or now > self.last_update + self.update_interval:
                 _LOGGER.debug("Updating module zones cache..." + module_udid)    
                 result = await self.get_module_data(module_udid)
-                for zone in result["zones"]["elements"]:
+                zones = result["zones"]["elements"]
+                zones = list(filter(lambda e: e['zone']['zoneState'] != "zoneUnregistered", zones))
+                tiles = result["tiles"]
+                for zone in zones:
                     self.zones[zone["zone"]["id"]] = zone
+                for tile in tiles:
+                    self.tiles[tile["id"]] = tile
                 self.last_update = now
         return self.zones
+
+    async def get_module_tiles(self, module_udid):
+        """Returns Tech module tiles either from cache or it will
+        update all the cached values for Tech module assuming
+        no update has occurred for at least the [update_interval].
+
+        Parameters:
+        inst (Tech): The instance of the Tech API.
+        module_udid (string): The Tech module udid.
+
+        Returns:
+        Dictionary of tiles indexed by tile ID.
+        """
+        async with self.update_lock:
+            now = time.time()
+            _LOGGER.debug("Geting module tiles: now: %s, last_update %s, interval: %s", now, self.last_update, self.update_interval)
+            if self.last_update is None or now > self.last_update + self.update_interval:
+                _LOGGER.debug("Updating module tiles cache..." + module_udid)    
+                result = await self.get_module_data(module_udid)
+                tiles = result["tiles"]
+                _LOGGER.debug("Tiles: %s", tiles)
+                for tile in tiles:
+                    self.tiles[tile["id"]] = tile
+                self.last_update = now
+        return self.tiles
     
     async def get_zone(self, module_udid, zone_id):
         """Returns zone from Tech API cache.
@@ -126,6 +157,19 @@ class Tech:
         """
         await self.get_module_zones(module_udid)
         return self.zones[zone_id]
+
+    async def get_tile(self, module_udid, tile_id):
+        """Returns tile from Tech API cache.
+
+        Parameters:
+        module_udid (string): The Tech module udid.
+        tile_id (int): The Tech module zone ID.
+
+        Returns:
+        Dictionary of zone.
+        """
+        await self.get_module_tiles(module_udid)
+        return self.tiles[tile_id]
 
     async def set_const_temp(self, module_udid, zone_id, target_temp):
         """Sets constant temperature of the zone.

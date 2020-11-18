@@ -24,21 +24,25 @@ SUPPORT_HVAC = [HVAC_MODE_HEAT, HVAC_MODE_OFF]
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up entry."""
-    _LOGGER.debug("Setting up entry, module udid: " + config_entry.data["udid"])
-    api = hass.data[DOMAIN][config_entry.entry_id]
-    zones = await api.get_module_zones(config_entry.data["udid"])
-    
-    async_add_entities(
-        [
-            TechThermostat(
-                zones[zone],
-                api,
-                config_entry,
-            )
-            for zone in zones
-        ],
-        True,
-    )
+    try:
+        _LOGGER.info("Setting up entry, module udid: " + config_entry.data["udid"])
+        api = hass.data[DOMAIN][config_entry.entry_id]
+        zones = await api.get_module_zones(config_entry.data["udid"])
+
+        async_add_entities(
+            [
+                TechThermostat(
+                    zones[zone],
+                    api,
+                    config_entry,
+                )
+                for zone in zones
+            ],
+            True,
+        )
+    except Exception as error:
+        _LOGGER.error('Failed to setup entry climate, %s' % error)
+        return False
 
 
 class TechThermostat(ClimateEntity):
@@ -49,6 +53,7 @@ class TechThermostat(ClimateEntity):
         _LOGGER.debug("Init TechThermostat...")
         self._config_entry = config_entry
         self._api = api
+        _LOGGER.debug('device["zone"]["id"] = %s', device["zone"]["id"])
         self._id = device["zone"]["id"]
         self._name = device["description"]["name"]
         self._target_temperature = device["zone"]["setTemperature"] / 10
@@ -65,6 +70,18 @@ class TechThermostat(ClimateEntity):
             self._mode = HVAC_MODE_HEAT
         else:
             self._mode = HVAC_MODE_OFF
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {
+                # Serial numbers are unique identifiers within a specific domain
+                (self._config_entry.data["udid"], self.unique_id)
+            },
+            "name": self.name,
+            "manufacturer": "Tech",
+            "model": self._config_entry.data["type"],
+        }
 
     @property
     def unique_id(self) -> str:
